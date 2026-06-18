@@ -52,5 +52,5 @@ jobs:
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
           testFormat: 'junit'
           testPaths: '2026-03-09-students-app/report.xml'
-          projectKey: 'KAN'
+          projectKey: 'AYAAR4'
           xrayBaseUrl: 'https://eu.xray.cloud.getxray.app/'
