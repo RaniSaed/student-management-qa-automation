@@ -1,4 +1,4 @@
-import service
+from app import service
 from flask import Flask, jsonify, request
 
 

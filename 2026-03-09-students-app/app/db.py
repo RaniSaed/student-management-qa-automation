@@ -1,13 +1,15 @@
+import os
 import pymysql
+from dotenv import load_dotenv
 
-#  THIS IS CLIENT OF MYSQL SERVER
-# configuration for connecting to MySql server
+load_dotenv()
+
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "1234",
-    "database": "students_db",
-    "cursorclass": pymysql.cursors.DictCursor  # return rows as dictionaries
+    "host": os.getenv("DB_HOST", "localhost"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "database": os.getenv("DB_NAME", "students_db"),
+    "cursorclass": pymysql.cursors.DictCursor,
 }
 
 
