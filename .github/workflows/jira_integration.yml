@@ -53,4 +53,4 @@ jobs:
           testFormat: 'junit'
           testPaths: '2026-03-09-students-app/report.xml'
           projectKey: 'KAN'
-          xrayBaseUrl: 'https://xray.cloud.getxray.app/'
+          xrayBaseUrl: 'https://eu.xray.cloud.getxray.app/'
