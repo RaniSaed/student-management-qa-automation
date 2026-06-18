@@ -8,8 +8,6 @@ jobs:
   test-and-report:
     runs-on: ubuntu-latest
 
-    # All `run` steps execute inside the project subdirectory
-    # where pyproject.toml lives
     defaults:
       run:
         working-directory: 2026-03-09-students-app
@@ -28,6 +26,7 @@ jobs:
         run: uv sync --all-groups
 
       - name: Run unit tests (no DB required in CI)
+        id: run-tests
         run: |
           uv run pytest \
             tests/test_student_service.py \
@@ -43,14 +42,39 @@ jobs:
           name: junit-report
           path: 2026-03-09-students-app/report.xml
 
-      - name: Report Results to Jira (Xray)
-        uses: mikepenz/xray-action@v3
+      - name: Post test results to Jira KAN-4
         if: always()
-        continue-on-error: true
-        with:
-          username: ${{ secrets.XRAY_CLIENT_ID }}
-          password: ${{ secrets.XRAY_CLIENT_SECRET }}
-          testFormat: 'junit'
-          testPaths: '2026-03-09-students-app/report.xml'
-          projectKey: 'AYAAR4'
-          xrayBaseUrl: 'https://eu.xray.cloud.getxray.app/'
+        run: |
+          if [ "${{ steps.run-tests.outcome }}" == "success" ]; then
+            ICON="✅"
+            STATUS="All 19 unit tests PASSED"
+          else
+            ICON="❌"
+            STATUS="Tests FAILED — check GitHub Actions"
+          fi
+          curl -s -X POST \
+            -u "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"body\": {
+                \"type\": \"doc\",
+                \"version\": 1,
+                \"content\": [
+                  {
+                    \"type\": \"paragraph\",
+                    \"content\": [{
+                      \"type\": \"text\",
+                      \"text\": \"${ICON} CI Run #${{ github.run_number }} — ${STATUS}\"
+                    }]
+                  },
+                  {
+                    \"type\": \"paragraph\",
+                    \"content\": [{
+                      \"type\": \"text\",
+                      \"text\": \"Branch: main | Commit: ${{ github.sha }}\"
+                    }]
+                  }
+                ]
+              }
+            }" \
+            "https://ayaaryan085-1781792010769.atlassian.net/rest/api/3/issue/KAN-4/comment"
