@@ -1,0 +1,385 @@
+{
+  "info": {
+    "name": "Students API - QA Automation",
+    "description": "Step 4 — Postman collection for the Students Management REST API.\n\nBefore sending requests:\n  1. uv run python db/init_db.py\n  2. uv run python -m app.controller\n\nThe POST request automatically saves the created student_id into the collection variable so GET/PUT/DELETE can reuse it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000",
+      "type": "string",
+      "description": "Flask server base URL"
+    },
+    {
+      "key": "student_id",
+      "value": "1",
+      "type": "string",
+      "description": "Updated automatically by POST request"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET All Students",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/students",
+          "host": ["{{base_url}}"],
+          "path": ["students"]
+        },
+        "description": "Returns the full list of students from the database."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response is a list\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "});",
+              "",
+              "pm.test(\"Response time is under 500ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET Student by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/students/{{student_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["students", "{{student_id}}"]
+        },
+        "description": "Returns a single student by ID.\nUses the {{student_id}} variable — set it manually or run POST first."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Student has id, name and age\", function () {",
+              "    const student = pm.response.json();",
+              "    pm.expect(student).to.have.property('id');",
+              "    pm.expect(student).to.have.property('name');",
+              "    pm.expect(student).to.have.property('age');",
+              "});",
+              "",
+              "pm.test(\"ID matches the requested ID\", function () {",
+              "    const student = pm.response.json();",
+              "    pm.expect(student.id).to.eql(Number(pm.collectionVariables.get('student_id')));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET Student by ID — Not Found",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/students/999999",
+          "host": ["{{base_url}}"],
+          "path": ["students", "999999"]
+        },
+        "description": "Expects 404 for a student that does not exist."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"Response contains a message\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('message');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Add Student — Valid",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Alice Cohen\",\n  \"age\": 25\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/students",
+          "host": ["{{base_url}}"],
+          "path": ["students"]
+        },
+        "description": "Creates a new student. The auto-generated ID is saved into {{student_id}} so subsequent requests can use it."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Response contains the new student with an ID\", function () {",
+              "    const student = pm.response.json();",
+              "    pm.expect(student).to.have.property('id');",
+              "    pm.expect(student.name).to.eql('Alice Cohen');",
+              "    pm.expect(student.age).to.eql(25);",
+              "});",
+              "",
+              "// Save the new student's ID for use in GET/PUT/DELETE",
+              "const student = pm.response.json();",
+              "pm.collectionVariables.set('student_id', String(student.id));",
+              "console.log('Saved student_id:', student.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST Add Student — Invalid Age",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Young Student\",\n  \"age\": 10\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/students",
+          "host": ["{{base_url}}"],
+          "path": ["students"]
+        },
+        "description": "Expects 400 — age 10 is below the minimum of 18."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Response contains an error message\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('message');",
+              "    pm.expect(body.message).to.include('illegal');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PUT Update Student — Valid",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": {{student_id}},\n  \"name\": \"Alice Cohen Updated\",\n  \"age\": 30\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/students",
+          "host": ["{{base_url}}"],
+          "path": ["students"]
+        },
+        "description": "Updates the student created by POST. Uses {{student_id}} automatically."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Name and age were updated\", function () {",
+              "    const student = pm.response.json();",
+              "    pm.expect(student.name).to.eql('Alice Cohen Updated');",
+              "    pm.expect(student.age).to.eql(30);",
+              "});",
+              "",
+              "pm.test(\"ID is unchanged\", function () {",
+              "    const student = pm.response.json();",
+              "    pm.expect(student.id).to.eql(Number(pm.collectionVariables.get('student_id')));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PUT Update Student — Not Found",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": 999999,\n  \"name\": \"Ghost\",\n  \"age\": 25\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/students",
+          "host": ["{{base_url}}"],
+          "path": ["students"]
+        },
+        "description": "Expects 404 — student ID 999999 does not exist."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"Response contains a message\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('message');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE Student — Valid",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/students/{{student_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["students", "{{student_id}}"]
+        },
+        "description": "Deletes the student created by POST. Uses {{student_id}} automatically."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deleted student is returned in response\", function () {",
+              "    const student = pm.response.json();",
+              "    pm.expect(student).to.have.property('id');",
+              "    pm.expect(student).to.have.property('name');",
+              "    pm.expect(student).to.have.property('age');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE Student — Not Found",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/students/999999",
+          "host": ["{{base_url}}"],
+          "path": ["students", "999999"]
+        },
+        "description": "Expects 404 — student ID 999999 does not exist."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"Response contains a message\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('message');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
