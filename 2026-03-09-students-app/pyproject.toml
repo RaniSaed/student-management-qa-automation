@@ -17,3 +17,8 @@ dev = [
     "selenium>=4.20",
     "pytest-mock>=3.14",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "jira_key: marks a test with a Jira issue key (e.g. STUDENT-001)",
+]
