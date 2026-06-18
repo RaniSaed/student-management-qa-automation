@@ -1,6 +1,19 @@
 [project]
 name = "2026-03-09-students-app"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automation project - Students Management App"
 requires-python = ">=3.9"
 dependencies = ["flask", "pymysql", "cryptography"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+    "requests",
+    "selenium",
+    "python-dotenv",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "jira_key(key): link test to a Jira story by its key",
+]

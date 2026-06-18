@@ -1,0 +1,70 @@
+# Workflow name displayed in GitHub Actions
+name: Student App CI to Jira
+
+# Trigger: Run this workflow on every push to the main branch
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # The identifier for our job
+  test-and-report:
+    # Environment: The virtual machine type (Runner)
+    runs-on: ubuntu-latest
+
+    # Service containers - run MySQL for integration tests
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 1234
+          MYSQL_DATABASE: students_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      # Step 1: Clone the repository code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install the 'uv' package manager
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      # Step 3: Setup the specific Python version needed
+      - name: Set up Python
+        run: uv python install 3.9
+
+      # Step 4: Install project dependencies (from pyproject.toml)
+      - name: Install dependencies
+        run: uv sync
+
+      # Step 5: Create the students table
+      - name: Setup database
+        run: |
+          mysql --host=127.0.0.1 --port=3306 -uroot -p1234 students_db \
+            -e "CREATE TABLE IF NOT EXISTS students (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, age INT NOT NULL);"
+
+      # Step 6: Execute tests and generate a JUnit XML report
+      # 'continue-on-error' ensures reporting happens even if tests fail
+      - name: Run Tests
+        run: uv run pytest --junitxml=report.xml -v
+        continue-on-error: true
+
+      # Step 7: Send the test results (XML) to Jira Xray
+      - name: Report Results to Jira (Xray)
+        uses: mikepenz/xray-action@v3
+        with:
+          # Credentials stored securely in GitHub Secrets
+          username: ${{ secrets.XRAY_CLIENT_ID }}
+          password: ${{ secrets.XRAY_CLIENT_SECRET }}
+          testFormat: 'junit'
+          testPaths: 'report.xml'
+          projectKey: 'SAQC'
+          # Uncomment if sending to EU region:
+          # xrayBaseUrl: 'https://eu.xray.cloud.getxray.app/'
