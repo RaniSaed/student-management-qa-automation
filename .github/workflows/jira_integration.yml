@@ -1,16 +1,15 @@
-name: Unit Tests + Jira Xray Report
+name: Student App CI to Jira
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [ "main" ]
 
 jobs:
-  unit-tests:
-    name: Run Unit Tests (no DB required)
+  test-and-report:
     runs-on: ubuntu-latest
 
+    # All `run` steps execute inside the project subdirectory
+    # where pyproject.toml lives
     defaults:
       run:
         working-directory: 2026-03-09-students-app
@@ -20,19 +19,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
+        uses: astral-sh/setup-uv@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+      - name: Set up Python 3.9
+        run: uv python install 3.9
 
       - name: Install dependencies
         run: uv sync --all-groups
 
-      - name: Run unit tests and generate XML report
+      - name: Run unit tests (no DB required in CI)
         run: |
           uv run pytest \
             tests/test_student_service.py \
@@ -41,21 +36,21 @@ jobs:
             -v
         continue-on-error: true
 
-      - name: Upload XML report as artifact
+      - name: Upload test report as artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: junit-report
           path: 2026-03-09-students-app/report.xml
 
-      - name: Report results to Jira Xray
+      - name: Report Results to Jira (Xray)
         uses: mikepenz/xray-action@v3
         if: always()
         continue-on-error: true
         with:
           username: ${{ secrets.XRAY_CLIENT_ID }}
           password: ${{ secrets.XRAY_CLIENT_SECRET }}
-          testFormat: "junit"
-          testPaths: "2026-03-09-students-app/report.xml"
-          projectKey: "KAN"
-          xrayCloud: true
+          testFormat: 'junit'
+          testPaths: '2026-03-09-students-app/report.xml'
+          projectKey: 'KAN'
+          xrayBaseUrl: 'https://xray.cloud.getxray.app/'
